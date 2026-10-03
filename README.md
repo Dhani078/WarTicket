@@ -75,7 +75,18 @@ WarTicket/
 │   ├── src/
 │   │   ├── main.tsx
 │   │   ├── index.css
-│   │   └── App.tsx
+│   │   ├── types.ts            # Type definitions (Tier, EventData, Attendee, Step)
+│   │   ├── App.tsx             # Main orchestrator (<250 lines)
+│   │   ├── components/         # Modular UI components (<50 lines each)
+│   │   │   ├── Header.tsx
+│   │   │   ├── HoldingBanner.tsx
+│   │   │   ├── ErrorBanner.tsx
+│   │   │   └── Footer.tsx
+│   │   └── screens/            # Screen views (<280 lines each)
+│   │       ├── CatalogScreen.tsx
+│   │       ├── QueueModal.tsx
+│   │       ├── CheckoutScreen.tsx
+│   │       └── SuccessScreen.tsx
 │   └── dist/
 └── tests/
     ├── test_logic.py
