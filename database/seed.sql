@@ -1,0 +1,10 @@
+INSERT INTO events (id, title, venue, event_date)
+VALUES ('a0000000-0000-0000-0000-000000000001', 'Neon Horizon Festival 2026: Liburland Stage', 'Aurora Arena, Jakarta', '2026-11-14 20:00:00+07')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO ticket_tiers (id, event_id, name, price, total_stock, reserved_stock, sold_stock)
+VALUES 
+('b1000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'VIP Lounge', 2500000.00, 50, 0, 0),
+('b2000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', 'General Admission', 990000.00, 500, 0, 0),
+('b3000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001', 'Early Bird', 650000.00, 100, 0, 100)
+ON CONFLICT (id) DO NOTHING;

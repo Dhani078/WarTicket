@@ -1,0 +1,23 @@
+{
+  "name": "warticket",
+  "version": "1.0.0",
+  "description": "WarTiket - High-concurrency flash-sale concert ticketing platform",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "start:backend": "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
+    "start:worker": "python app/worker.py",
+    "test:k6": "k6 run tests/load_test_k6.js"
+  },
+  "keywords": [
+    "ticketing",
+    "redis",
+    "lua",
+    "fastapi",
+    "neon",
+    "concurrency"
+  ],
+  "author": "Dhani078",
+  "license": "MIT"
+}

@@ -1,0 +1,10 @@
+{
+  "description": "A high-concurrency flash-sale ticketing platform offering real-time queue management, tiered ticket selection, and secure checkout for concertgoers.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
