@@ -98,15 +98,15 @@ WarTicket/
 ## 🚀 Panduan Menjalankan Sistem
 
 ### 1. Konfigurasi Lingkungan (`.env`)
-Salin berkas `.env.example` ke `.env` dan lengkapi kredensial:
+Sistem telah terhubung langsung ke cluster **Neon PostgreSQL Production** (`withered-leaf-49522281`) dan server Redis:
 ```env
-DATABASE_URL="postgresql://neondb_owner:YOUR_NEON_PASSWORD@ep-withered-leaf-49522281-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
-REDIS_URL="rediss://default:YOUR_UPSTASH_PASSWORD@YOUR_UPSTASH_ENDPOINT.upstash.io:6379"
+DATABASE_URL="postgresql://neondb_owner:***@ep-raspy-river-b3t9gzb6-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+REDIS_URL="redis://127.0.0.1:6379/0"
 ENVIRONMENT="production"
 PORT=8000
 HOLDING_TTL_SECONDS=600
 MAX_TICKETS_PER_USER=2
-CORS_ORIGINS="http://localhost:3000,http://localhost:5173"
+CORS_ORIGINS="http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173"
 ```
 
 ### 2. Setup Database PostgreSQL
