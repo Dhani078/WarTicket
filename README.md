@@ -75,8 +75,9 @@ WarTicket/
 │   └── reserve_ticket.lua
 ├── app/
 │   ├── __init__.py
-│   ├── main.py
-│   └── worker.py
+│   ├── main.py                 # REST API Engine (<300 lines)
+│   ├── stats.py                # Admin observability & telemetry router (<50 lines)
+│   └── worker.py               # Reconciler 5s + DB fallback (<70 lines)
 ├── frontend/
 │   ├── package.json
 │   ├── vite.config.ts
@@ -85,23 +86,26 @@ WarTicket/
 │   │   ├── main.tsx
 │   │   ├── index.css
 │   │   ├── types.ts            # Type definitions (Tier, EventData, Attendee, Step)
-│   │   ├── App.tsx             # Main orchestrator (<250 lines)
-│   │   ├── components/         # Modular UI components (<65 lines each)
+│   │   ├── App.tsx             # Main orchestrator (<260 lines)
+│   │   ├── components/         # Modular UI components (<70 lines each)
 │   │   │   ├── Header.tsx
 │   │   │   ├── HoldingBanner.tsx
 │   │   │   ├── ErrorBanner.tsx
 │   │   │   ├── QrisCard.tsx
+│   │   │   ├── VirtualAccountCard.tsx
+│   │   │   ├── CreditCardCard.tsx
 │   │   │   └── Footer.tsx
-│   │   └── screens/            # Screen views (<280 lines each)
+│   │   └── screens/            # Screen views (<285 lines each)
 │   │       ├── CatalogScreen.tsx
 │   │       ├── QueueModal.tsx
 │   │       ├── CheckoutScreen.tsx
 │   │       └── SuccessScreen.tsx
 │   └── dist/
 └── tests/
-    ├── test_logic.py
-    ├── test_e2e_real.py
-    └── load_test_k6.js
+    ├── test_logic.py           # Unit tests logic
+    ├── test_e2e_real.py        # 7-suite live E2E integration tests
+    ├── load_test_smoke.js      # k6 smoke benchmark (50 VUs)
+    └── load_test_k6.js         # k6 flash-sale spike (3.000 VUs)
 ```
 
 ---

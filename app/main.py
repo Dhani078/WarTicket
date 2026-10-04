@@ -10,6 +10,7 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import redis.asyncio as aioredis
+from app.stats import stats_router
 
 load_dotenv()
 
@@ -53,6 +54,7 @@ async def lifespan(app: FastAPI):
         await redis_client.aclose()
 
 app = FastAPI(title="WarTiket High-Concurrency Engine", version="1.0.0", lifespan=lifespan)
+app.include_router(stats_router)
 
 origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
 app.add_middleware(
