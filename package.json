@@ -8,9 +8,12 @@
     "build:frontend": "cd frontend && npm run build",
     "start:backend": "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
     "start:worker": "python app/worker.py",
-    "test:logic": "python tests/test_logic.py",
-    "test": "npm run test:logic",
-    "test:k6": "k6 run tests/load_test_k6.js"
+    "test:logic": "venv\\Scripts\\python tests/test_logic.py",
+    "test:e2e": "venv\\Scripts\\python tests/test_e2e_real.py",
+    "test:k6": "k6 run tests/load_test_k6.js",
+    "test:smoke": "k6 run tests/load_test_smoke.js",
+    "audit:viewport": "venv\\Scripts\\python tests/audit_viewports.py",
+    "test": "npm run test:logic && npm run test:e2e"
   },
   "keywords": [
     "ticketing",

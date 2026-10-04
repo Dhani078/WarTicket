@@ -117,6 +117,7 @@ WarTicket/
 ├── tests/
     ├── test_logic.py           # Unit tests logic
     ├── test_e2e_real.py        # 7-suite live E2E integration tests
+    ├── audit_viewports.py      # Automated CDP viewport auditor (0 overflow)
     ├── load_test_smoke.js      # k6 smoke benchmark (50 VUs)
     └── load_test_k6.js         # k6 flash-sale spike (3.000 VUs)
 ```
