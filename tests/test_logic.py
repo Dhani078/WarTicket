@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 # Add project root to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.main import ReserveRequest, WebhookPaymentRequest, LUA_RESERVE_CODE
+from app.main import ReserveRequest, CancelReservationRequest, WebhookPaymentRequest, LUA_RESERVE_CODE
 
 def test_models():
     # 1. Valid ReserveRequest
@@ -27,7 +27,11 @@ def test_models():
     except Exception as e:
         assert "greater than or equal to 1" in str(e) or "Input should be greater than or equal to 1" in str(e)
 
-    # 4. WebhookPaymentRequest
+    # 4. CancelReservationRequest
+    cancel = CancelReservationRequest(reservation_token="res_123456", order_id=str(uuid.uuid4()))
+    assert cancel.reservation_token == "res_123456"
+
+    # 5. WebhookPaymentRequest
     pay = WebhookPaymentRequest(idempotency_key="pay_test_123", order_id=str(uuid.uuid4()), status="SUCCESS")
     assert pay.status == "SUCCESS"
     print("✓ Pydantic model validation checks PASSED")

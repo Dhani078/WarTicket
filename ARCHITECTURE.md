@@ -53,3 +53,15 @@ Siklus pengembalian kuota yang kedaluwarsa dijamin oleh `app/worker.py`:
   - Menghapus penguncian antrean user.
   - Memperbarui status baris pesanan PostgreSQL menjadi `EXPIRED`.
 - Menjamin tidak ada kuota yang tertahan atau hilang jika pembeli membatalkan atau tidak menyelesaikan transaksi.
+- Dilengkapi fallback otomatis ke PostgreSQL jika memori Redis mengalami pengosongan (*eviction*).
+
+---
+
+## 4. Pola Kompensasi Terdistribusi (*Saga Compensating Action*)
+
+Pada skenario jaringan terdistribusi di mana Redis berhasil mengamankan kuota namun PostgreSQL gagal menulis baris pesanan (misalnya timeout pool atau kegagalan koneksi jaringan):
+- Blok `try...except` di FastAPI memicu *compensating action*:
+  - `INCRBY tier:{id}:stock {quantity}`
+  - Menghapus kunci reservasi dan antrean user.
+- Menjamin stok di memori Redis tidak bocor (*zero stock leak*).
+

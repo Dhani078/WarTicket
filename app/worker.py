@@ -24,20 +24,29 @@ async def start_reconciliation():
                 res_key = f"reservation:{token}"
                 res_data = await r.hgetall(res_key)
                 
-                if res_data:
-                    tier_id = res_data.get("tier_id")
-                    qty = int(res_data.get("quantity", 0))
-                    user_id = res_data.get("user_id")
+                tier_id = res_data.get("tier_id") if res_data else None
+                qty = int(res_data.get("quantity", 0)) if res_data else 0
+                user_id = res_data.get("user_id") if res_data else None
+
+                async with pool.acquire() as conn:
+                    # Fallback to DB if Redis evicted the hash key early
+                    if not tier_id or qty == 0:
+                        order = await conn.fetchrow(
+                            "SELECT tier_id, quantity, user_id FROM orders WHERE reservation_token = $1 AND status = 'PENDING'",
+                            token
+                        )
+                        if order:
+                            tier_id = str(order["tier_id"])
+                            qty = order["quantity"]
+                            user_id = str(order["user_id"])
 
                     if tier_id and qty > 0:
                         await r.incrby(f"tier:{tier_id}:stock", qty)
                     if user_id and tier_id:
                         await r.delete(f"user:{user_id}:tier:{tier_id}")
                     await r.delete(res_key)
+                    await r.zrem("reservations:expiry_zset", token)
 
-                await r.zrem("reservations:expiry_zset", token)
-
-                async with pool.acquire() as conn:
                     await conn.execute(
                         "UPDATE orders SET status = 'EXPIRED', updated_at = NOW() WHERE reservation_token = $1 AND status = 'PENDING'",
                         token

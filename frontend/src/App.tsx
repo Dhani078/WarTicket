@@ -58,6 +58,21 @@ export default function App() {
     loadEvent();
   }, []);
 
+  // Live stock polling when browsing catalog
+  useEffect(() => {
+    if (step === 'tiers') {
+      const poller = setInterval(() => {
+        fetch(`${API_BASE}/api/v1/events/active`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data: EventData | null) => {
+            if (data) setEvent(data);
+          })
+          .catch(() => {});
+      }, 4000);
+      return () => clearInterval(poller);
+    }
+  }, [step]);
+
   // Countdown timer during checkout
   useEffect(() => {
     if (step === 'checkout' && timeLeft > 0) {
@@ -149,6 +164,22 @@ export default function App() {
     }
   };
 
+  const handleCancelReserve = async () => {
+    if (reservationToken && orderId) {
+      try {
+        await fetch(`${API_BASE}/api/v1/tickets/cancel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reservation_token: reservationToken, order_id: orderId })
+        });
+      } catch {
+        // Fallback silently; background worker reconciles if network drops
+      }
+    }
+    setStep('tiers');
+    loadEvent();
+  };
+
   const activeTierObj = event?.tiers.find((t) => t.id === selectedTier);
   const platformFee = 5000;
   const subtotal = activeTierObj ? activeTierObj.price * quantity : 0;
@@ -203,10 +234,7 @@ export default function App() {
             setPaymentMethod={setPaymentMethod}
             isProcessing={isProcessingPayment}
             onPay={handlePayment}
-            onCancel={() => {
-              setStep('tiers');
-              loadEvent();
-            }}
+            onCancel={handleCancelReserve}
           />
         )}
 

@@ -41,10 +41,19 @@ Operasi pengecekan kuota, pemotongan stok, dan penguncian antrean user dijalanka
 
 Worker berjalan secara asinkron setiap 5 detik untuk mendeteksi reservasi yang kedaluwarsa (`expires_at < NOW()`):
 - Mengambil token kedaluwarsa dari `reservations:expiry_zset`.
-- Membaca data reservasi dari `reservation:{token}`.
+- Membaca data reservasi dari `reservation:{token}` (dengan fallback otomatis ke tabel `orders` PostgreSQL jika Redis mengevikasi kunci lebih awal).
 - Mengembalikan kuota tiket ke Redis via `INCRBY tier:{tier_id}:stock {quantity}`.
 - Menghapus kunci antrean user `user:{user_id}:tier:{tier_id}`.
 - Memperbarui status pesanan di PostgreSQL dari `PENDING` menjadi `EXPIRED`.
+
+---
+
+## 🛡️ Distributed Resilience & Endpoints Tambahan
+
+1. **Compensating Rollback (Saga Pattern):** Jika penulisan baris order ke PostgreSQL gagal setelah eksekusi Lua Redis berhasil, server API otomatis mengeksekusi rollback di Redis (`INCRBY` stok kembali dan hapus kunci user), menjamin tidak ada kuota yang bocor (*zero stock leak*).
+2. **Instant Cancellation (`POST /api/v1/tickets/cancel`):** Pembeli yang membatalkan pesanan di halaman checkout langsung melepaskan kuota kembali ke pool seketika tanpa harus menunggu timeout 10 menit.
+3. **Order Detail Query (`GET /api/v1/orders/{order_id}`):** Endpoint verifikasi status dan riwayat order langsung ke PostgreSQL.
+4. **Live Stock Polling:** Frontend memperbarui katalog tiket secara halus setiap 4 detik saat berada di katalog.
 
 ---
 

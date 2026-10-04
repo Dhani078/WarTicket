@@ -67,6 +67,10 @@ class ReserveRequest(BaseModel):
     user_id: str
     quantity: int = Field(..., ge=1, le=2)
 
+class CancelReservationRequest(BaseModel):
+    reservation_token: str
+    order_id: str
+
 class WebhookPaymentRequest(BaseModel):
     idempotency_key: str
     order_id: str
@@ -131,28 +135,38 @@ async def reserve_ticket(payload: ReserveRequest):
     if result == -2:
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Anda masih memiliki antrean aktif untuk tiket ini.")
     
-    async with db_pool.acquire() as conn:
-        tier_info = await conn.fetchrow("SELECT price FROM ticket_tiers WHERE id = $1", uuid.UUID(payload.tier_id))
-        if not tier_info:
-            raise HTTPException(status_code=404, detail="Tier tidak ditemukan.")
+    try:
+        async with db_pool.acquire() as conn:
+            tier_info = await conn.fetchrow("SELECT price FROM ticket_tiers WHERE id = $1", uuid.UUID(payload.tier_id))
+            if not tier_info:
+                raise HTTPException(status_code=404, detail="Tier tidak ditemukan.")
+                
+            total_amount = float(tier_info["price"]) * payload.quantity
+            expires_at = datetime.fromtimestamp(now_epoch + HOLDING_TTL, tz=timezone.utc)
+            order_id = uuid.uuid4()
             
-        total_amount = float(tier_info["price"]) * payload.quantity
-        expires_at = datetime.fromtimestamp(now_epoch + HOLDING_TTL, tz=timezone.utc)
-        order_id = uuid.uuid4()
-        
-        await conn.execute(
-            """
-            INSERT INTO orders (id, user_id, tier_id, quantity, total_amount, status, reservation_token, expires_at)
-            VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7)
-            """,
-            order_id,
-            uuid.UUID(payload.user_id),
-            uuid.UUID(payload.tier_id),
-            payload.quantity,
-            total_amount,
-            token,
-            expires_at
-        )
+            await conn.execute(
+                """
+                INSERT INTO orders (id, user_id, tier_id, quantity, total_amount, status, reservation_token, expires_at)
+                VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7)
+                """,
+                order_id,
+                uuid.UUID(payload.user_id),
+                uuid.UUID(payload.tier_id),
+                payload.quantity,
+                total_amount,
+                token,
+                expires_at
+            )
+    except Exception as e:
+        # Compensating rollback in Redis if PostgreSQL fails
+        await redis_client.incrby(f"tier:{payload.tier_id}:stock", payload.quantity)
+        await redis_client.delete(f"user:{payload.user_id}:tier:{payload.tier_id}")
+        await redis_client.delete(f"reservation:{token}")
+        await redis_client.zrem("reservations:expiry_zset", token)
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail="Database write failure, reservation rolled back.")
 
     return {
         "status": "success",
@@ -198,3 +212,59 @@ async def payment_webhook(payload: WebhookPaymentRequest):
             )
 
     return {"status": "processed", "order_id": payload.order_id}
+
+@app.post("/api/v1/tickets/cancel")
+async def cancel_reservation(payload: CancelReservationRequest):
+    async with db_pool.acquire() as conn:
+        order = await conn.fetchrow(
+            "SELECT * FROM orders WHERE id = $1 AND reservation_token = $2",
+            uuid.UUID(payload.order_id), payload.reservation_token
+        )
+        if not order:
+            raise HTTPException(status_code=404, detail="Order tidak ditemukan.")
+        if order["status"] != "PENDING":
+            return {"status": "ignored", "reason": f"order_already_{order['status'].lower()}"}
+
+        await conn.execute("UPDATE orders SET status = 'CANCELLED', updated_at = NOW() WHERE id = $1", order["id"])
+
+    tier_id = str(order["tier_id"])
+    qty = order["quantity"]
+    user_id = str(order["user_id"])
+
+    await redis_client.incrby(f"tier:{tier_id}:stock", qty)
+    await redis_client.delete(f"user:{user_id}:tier:{tier_id}")
+    await redis_client.delete(f"reservation:{payload.reservation_token}")
+    await redis_client.zrem("reservations:expiry_zset", payload.reservation_token)
+
+    return {"status": "cancelled", "order_id": payload.order_id}
+
+@app.get("/api/v1/orders/{order_id}")
+async def get_order_detail(order_id: str):
+    async with db_pool.acquire() as conn:
+        order = await conn.fetchrow(
+            """
+            SELECT o.*, t.name as tier_name, e.title as event_title, e.venue as event_venue
+            FROM orders o
+            JOIN ticket_tiers t ON o.tier_id = t.id
+            JOIN events e ON t.event_id = e.id
+            WHERE o.id = $1
+            """,
+            uuid.UUID(order_id)
+        )
+        if not order:
+            raise HTTPException(status_code=404, detail="Order tidak ditemukan.")
+        return {
+            "id": str(order["id"]),
+            "user_id": str(order["user_id"]),
+            "tier_id": str(order["tier_id"]),
+            "tier_name": order["tier_name"],
+            "event_title": order["event_title"],
+            "event_venue": order["event_venue"],
+            "quantity": order["quantity"],
+            "total_amount": float(order["total_amount"]),
+            "status": order["status"],
+            "reservation_token": order["reservation_token"],
+            "expires_at": order["expires_at"].isoformat(),
+            "created_at": order["created_at"].isoformat()
+        }
+

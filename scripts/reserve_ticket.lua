@@ -32,7 +32,7 @@ redis.call('HSET', KEYS[3],
     'status', 'LOCKED',
     'created_at', current_epoch
 )
-redis.call('EXPIRE', KEYS[3], ttl_seconds)
+redis.call('EXPIRE', KEYS[3], ttl_seconds * 2)
 
 redis.call('SET', KEYS[2], ARGV[2], 'EX', ttl_seconds)
 
