@@ -102,9 +102,9 @@ export default function CatalogScreen({
       </div>
 
       {/* Filter, Search & View Switcher Bar */}
-      <div className="mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="mb-6 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
         {/* Search */}
-        <div className="relative w-full md:w-64">
+        <div className="relative w-full lg:w-72">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -124,9 +124,9 @@ export default function CatalogScreen({
         </div>
 
         {/* Filter chips & View Switcher */}
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-between md:justify-end">
-          <div className="flex items-center gap-1.5 overflow-x-auto">
-            <span className="text-xs text-slate-500 font-mono hidden lg:inline-flex items-center gap-1 mr-1">
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-between lg:justify-end">
+          <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 sm:pb-0">
+            <span className="text-xs text-slate-500 font-mono hidden xl:inline-flex items-center gap-1 mr-1">
               <SlidersHorizontal className="w-3 h-3" /> Filter:
             </span>
             {[
@@ -150,7 +150,7 @@ export default function CatalogScreen({
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center bg-[#0B0F19] border border-[#1E293B] rounded-xl p-1 gap-1">
+          <div className="flex items-center bg-[#0B0F19] border border-[#1E293B] rounded-xl p-1 gap-1 shrink-0">
             <button
               onClick={() => setViewMode('grid')}
               className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1 transition-all cursor-pointer ${

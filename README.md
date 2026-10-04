@@ -43,6 +43,8 @@ WarTiket adalah sistem tiket konser skala tinggi (*high-concurrency flash-sale*)
 ```text
 WarTicket/
 ├── .env.example & .env
+├── docker-compose.yml          # Container orchestration (Redis + API + Worker + Frontend)
+├── Dockerfile.backend          # FastAPI + Reconciler Docker image
 ├── package.json                # NPM lifecycle & test orchestration
 ├── requirements.txt            # Python dependencies (FastAPI, asyncpg, redis-py)
 ├── README.md                   # Main documentation
@@ -64,6 +66,7 @@ WarTicket/
 │   ├── stats.py                # Admin observability & restock router (<80 lines)
 │   └── worker.py               # Reconciler 2-phase transition (<70 lines)
 ├── frontend/
+│   ├── Dockerfile.frontend & nginx.conf
 │   ├── package.json & vite.config.ts
 │   ├── index.html & src/index.css
 │   ├── src/types.ts            # Frontend TypeScript definitions

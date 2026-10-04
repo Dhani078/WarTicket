@@ -8,7 +8,7 @@ interface TierGridProps {
 
 export default function TierGrid({ tiers, selectedTier, onSelectTier }: TierGridProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {tiers.map((tier: Tier) => {
         const isSelected = selectedTier === tier.id;
         const perksList = tier.name.toLowerCase().includes('vip')

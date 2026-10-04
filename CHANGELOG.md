@@ -4,6 +4,18 @@ Catatan riwayat pembaruan, penguatan arsitektur, dan audit sistem WarTiket.
 
 ---
 
+## [v1.5.0] — 2026-10-04
+### Added
+- **Full-Stack Containerization:** `docker-compose.yml`, `Dockerfile.backend`, `Dockerfile.frontend` (multi-stage build), dan `nginx.conf` untuk kemudahan deployment multi-service dalam satu perintah.
+- **Admin In-App Quick Restock:** Tombol restock kuota instan `[+10]` dan `[+50]` terintegrasi langsung pada `TelemetryModal.tsx` dengan sinkronisasi live ke Neon PostgreSQL dan Redis.
+- **Cryptographic Pass JSON Export:** Fitur unduh berkas bukti tiket pass digital `.json` resmi langsung dari modal tiket.
+- **Self-Healing Automation Runners:** Skrip `audit_viewports.py` dan `simulate_real_user.py` kini dilengkapi auto-boot service and browser detection.
+
+### Fixed
+- **Tablet (768px) Viewport Optimization:** Menyesuaikan breakpoint flex stack filter bar ke `lg:flex-row` dan grid kartu tiket ke `md:grid-cols-2 lg:grid-cols-3`, mengeliminasi overflow 140px dan menjamin 100% Zero Horizontal Overflow di seluruh device (375px sampai 1920px).
+
+---
+
 ## [v1.4.0] — 2026-10-04
 ### Added
 - **Interactive SVG Arena Map (`ArenaMap.tsx`):** Denah panggung festival (Main Stage, Laser Grid, VIP Lounge, GA Floor, FOH Sound Booth) yang dapat diklik langsung untuk memilih tier tiket.

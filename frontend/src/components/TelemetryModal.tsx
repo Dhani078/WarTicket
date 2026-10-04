@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Activity, ShieldCheck, RefreshCw, X, Server, Database, Cpu } from 'lucide-react';
+import { Activity, ShieldCheck, RefreshCw, X, Server, Database, Cpu, PlusCircle } from 'lucide-react';
+import { sound } from '../utils/sound';
 
 interface TelemetryModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ export default function TelemetryModal({ isOpen, onClose }: TelemetryModalProps)
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [latency, setLatency] = useState(12);
+  const [restockingId, setRestockingId] = useState<string | null>(null);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -28,6 +30,25 @@ export default function TelemetryModal({ isOpen, onClose }: TelemetryModalProps)
       // Fallback
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRestock = async (tierId: string, additional: number) => {
+    setRestockingId(tierId);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/admin/tiers/${tierId}/adjust-stock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ additional_stock: additional })
+      });
+      if (res.ok) {
+        sound.playChime();
+        await fetchStats();
+      }
+    } catch {
+      // Error handled
+    } finally {
+      setRestockingId(null);
     }
   };
 
@@ -100,15 +121,37 @@ export default function TelemetryModal({ isOpen, onClose }: TelemetryModalProps)
 
         {/* Tier Real-time Breakdown */}
         <div className="space-y-2">
-          <span className="text-xs font-semibold text-slate-300 font-mono">STOCK INTEGRITY MATRIX</span>
-          <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-300 font-mono">STOCK INTEGRITY MATRIX</span>
+            <span className="text-[10px] text-slate-500 font-mono">Quick Admin Restock</span>
+          </div>
+          <div className="space-y-2">
             {stats?.tiers?.map((t: any) => (
-              <div key={t.id} className="p-2.5 rounded-lg bg-[#0B0F19] border border-[#1E293B] flex items-center justify-between text-xs font-mono">
-                <span className="font-semibold text-white">{t.name}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-slate-400">Sold: <strong className="text-emerald-400">{t.sold_stock_db}</strong></span>
-                  <span className="text-slate-400">Redis: <strong className="text-[#A5B4FC]">{t.available_stock_redis}</strong></span>
-                  <span className="text-slate-500">/ {t.total_stock}</span>
+              <div key={t.id} className="p-3 rounded-xl bg-[#0B0F19] border border-[#1E293B] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
+                <div>
+                  <div className="font-semibold text-white">{t.name}</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">
+                    Sold DB: <strong className="text-emerald-400">{t.sold_stock_db}</strong> • Redis: <strong className="text-[#A5B4FC]">{t.available_stock_redis}</strong> / {t.total_stock}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 self-end sm:self-center">
+                  <button
+                    disabled={restockingId === t.id}
+                    onClick={() => handleRestock(t.id, 10)}
+                    className="px-2 py-1 bg-[#1E293B] hover:bg-[#6366F1] hover:text-white text-slate-300 rounded text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                    title="Tambah 10 stok live ke Neon DB dan Redis"
+                  >
+                    <PlusCircle className="w-3 h-3" /> +10
+                  </button>
+                  <button
+                    disabled={restockingId === t.id}
+                    onClick={() => handleRestock(t.id, 50)}
+                    className="px-2 py-1 bg-[#1E293B] hover:bg-[#6366F1] hover:text-white text-slate-300 rounded text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                    title="Tambah 50 stok live ke Neon DB dan Redis"
+                  >
+                    <PlusCircle className="w-3 h-3" /> +50
+                  </button>
                 </div>
               </div>
             ))}

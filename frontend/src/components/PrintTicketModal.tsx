@@ -1,4 +1,4 @@
-import { Printer, X, Ticket, QrCode } from 'lucide-react';
+import { Printer, X, Ticket, QrCode, Download } from 'lucide-react';
 
 interface PrintTicketModalProps {
   isOpen: boolean;
@@ -20,6 +20,29 @@ export default function PrintTicketModal({
   grandTotal,
 }: PrintTicketModalProps) {
   if (!isOpen) return null;
+
+  const handleDownloadJson = () => {
+    const ticketData = {
+      event: "Neon Horizon Festival 2026: Liburland Stage",
+      venue: "Aurora Arena, Jakarta",
+      date: "2026-11-14T20:00:00+07:00",
+      tier: tierName,
+      quantity,
+      totalAmount: grandTotal,
+      orderId,
+      reservationToken,
+      ledger: "Neon PostgreSQL Cloud",
+      status: "PAID_VERIFIED",
+      issuedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(ticketData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `WarTiket_${orderId.slice(0, 8)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
@@ -76,16 +99,22 @@ export default function PrintTicketModal({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-2.5">
           <button
             onClick={() => window.print()}
-            className="flex-1 py-3 bg-[#6366F1] hover:bg-[#4F46E5] active:bg-[#4338CA] rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 shadow-lg transition-colors cursor-pointer"
+            className="flex-1 py-3 bg-[#6366F1] hover:bg-[#4F46E5] active:bg-[#4338CA] rounded-xl font-bold text-xs text-white flex items-center justify-center gap-2 shadow-lg transition-colors cursor-pointer"
           >
-            <Printer className="w-4 h-4" /> Cetak / Simpan PDF
+            <Printer className="w-4 h-4" /> Cetak / PDF
+          </button>
+          <button
+            onClick={handleDownloadJson}
+            className="flex-1 py-3 bg-[#10B981] hover:bg-[#059669] active:bg-[#047857] rounded-xl font-bold text-xs text-white flex items-center justify-center gap-2 shadow-lg transition-colors cursor-pointer"
+          >
+            <Download className="w-4 h-4" /> Unduh Pass (.json)
           </button>
           <button
             onClick={onClose}
-            className="px-6 py-3 border border-[#334155] rounded-xl text-sm font-semibold text-slate-300 hover:bg-[#1E293B] transition-colors cursor-pointer"
+            className="px-5 py-3 border border-[#334155] rounded-xl text-xs font-semibold text-slate-300 hover:bg-[#1E293B] transition-colors cursor-pointer"
           >
             Tutup
           </button>
