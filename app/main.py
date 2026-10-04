@@ -8,10 +8,11 @@ import asyncpg
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
 import redis.asyncio as aioredis
 from app.stats import stats_router
 from app.promos import promo_router
+from app.security import rate_limit_ip
+from app.models import ReserveRequest, CancelReservationRequest, WebhookPaymentRequest
 
 load_dotenv()
 
@@ -34,6 +35,8 @@ async def lifespan(app: FastAPI):
         dsn=DATABASE_URL,
         min_size=5,
         max_size=20,
+        max_inactive_connection_lifetime=300,
+        command_timeout=60,
         ssl="require"
     )
     redis_client = aioredis.from_url(REDIS_URL, decode_responses=False)
@@ -66,20 +69,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-class ReserveRequest(BaseModel):
-    tier_id: str
-    user_id: str
-    quantity: int = Field(..., ge=1, le=2)
-
-class CancelReservationRequest(BaseModel):
-    reservation_token: str
-    order_id: str
-
-class WebhookPaymentRequest(BaseModel):
-    idempotency_key: str
-    order_id: str
-    status: str
 
 @app.get("/health")
 async def health_check():
@@ -114,7 +103,9 @@ async def get_active_events():
         }
 
 @app.post("/api/v1/tickets/reserve", status_code=status.HTTP_201_CREATED)
-async def reserve_ticket(payload: ReserveRequest):
+async def reserve_ticket(payload: ReserveRequest, request: Request):
+    await rate_limit_ip(request, redis_client, max_requests=150, window_seconds=10)
+
     try:
         tier_uuid = uuid.UUID(payload.tier_id)
         user_uuid = uuid.UUID(payload.user_id)

@@ -75,7 +75,9 @@ WarTicket/
 │   └── reserve_ticket.lua
 ├── app/
 │   ├── __init__.py
-│   ├── main.py                 # REST API Engine (<300 lines)
+│   ├── main.py                 # REST API Engine (<290 lines)
+│   ├── models.py               # Pydantic schemas (<20 lines)
+│   ├── security.py             # IP sliding-window rate limiter (<40 lines)
 │   ├── promos.py               # Promo & voucher validation router (<40 lines)
 │   ├── stats.py                # Admin observability & live inventory replenisher (<80 lines)
 │   └── worker.py               # Reconciler 2-phase DB transition + Redis (<70 lines)
@@ -90,10 +92,12 @@ WarTicket/
 │   │   ├── App.tsx             # Main orchestrator (<298 lines)
 │   │   ├── utils/
 │   │   │   └── sound.ts        # Zero-dep Web Audio synthesizer (<60 lines)
-│   │   ├── components/         # Modular UI components (<130 lines each)
+│   │   ├── components/         # Modular UI components (<140 lines each)
 │   │   │   ├── Header.tsx      # Header with sound toggle & order history
 │   │   │   ├── HoldingBanner.tsx
 │   │   │   ├── ErrorBanner.tsx
+│   │   │   ├── ArenaMap.tsx    # Interactive SVG Stage & Seating Map
+│   │   │   ├── TierGrid.tsx    # Responsive ticket tiers grid
 │   │   │   ├── QrisCard.tsx
 │   │   │   ├── VirtualAccountCard.tsx
 │   │   │   ├── CreditCardCard.tsx
@@ -102,7 +106,7 @@ WarTicket/
 │   │   │   ├── TelemetryModal.tsx
 │   │   │   ├── PrintTicketModal.tsx
 │   │   │   └── Footer.tsx
-│   │   └── screens/            # Screen views (<298 lines each)
+│   │   └── screens/            # Screen views (<285 lines each)
 │   │       ├── CatalogScreen.tsx
 │   │       ├── QueueModal.tsx
 │   │       ├── CheckoutScreen.tsx
