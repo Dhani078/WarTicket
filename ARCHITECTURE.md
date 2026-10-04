@@ -44,16 +44,14 @@ Endpoint webhook pembayaran (`POST /api/v1/webhooks/payment`) dilindungi oleh ta
 
 ---
 
-## 3. Rekonsiliasi Otomatis (*Deterministic Expiry Reconciliation*)
+## 3. Two-Phase Worker State Transition (Phantom Stock Elimination)
 
-Siklus pengembalian kuota yang kedaluwarsa dijamin oleh `app/worker.py`:
-- Setiap 5 detik, worker memindai `reservations:expiry_zset` dengan skor `0` sampai `NOW()`.
-- Setiap token yang melewati batas 600 detik diproses:
-  - Mengembalikan stok ke Redis via `INCRBY tier:{id}:stock {quantity}`.
-  - Menghapus penguncian antrean user.
-  - Memperbarui status baris pesanan PostgreSQL menjadi `EXPIRED`.
-- Menjamin tidak ada kuota yang tertahan atau hilang jika pembeli membatalkan atau tidak menyelesaikan transaksi.
-- Dilengkapi fallback otomatis ke PostgreSQL jika memori Redis mengalami pengosongan (*eviction*).
+Pada sistem terdistribusi, background worker yang membersihkan reservasi kedaluwarsa berpotensi konflik dengan webhook pembayaran yang tiba pada milidetik yang sama:
+- **Pola Lama (Rawan Bug):** Worker me-refund stok Redis terlebih dahulu baru memperbarui DB. Jika order di DB sudah dibayar, stok di Redis bertambah tanpa ada tiket yang dikembalikan (*phantom stock*).
+- **Pola Baru (Two-Phase Enforced):**
+  1. Worker mengeksekusi `UPDATE orders SET status = 'EXPIRED' WHERE reservation_token = $1 AND status = 'PENDING'` terlebih dahulu.
+  2. Hanya jika respons DB menghasilkan `'UPDATE 1'`, worker mengeksekusi `INCRBY tier:{id}:stock {quantity}`.
+  3. Jika respons DB adalah `'UPDATE 0'` (artinya pesanan sudah `PAID` atau `CANCELLED`), worker sama sekali tidak menambah stok Redis.
 
 ---
 
@@ -62,6 +60,24 @@ Siklus pengembalian kuota yang kedaluwarsa dijamin oleh `app/worker.py`:
 Pada skenario jaringan terdistribusi di mana Redis berhasil mengamankan kuota namun PostgreSQL gagal menulis baris pesanan (misalnya timeout pool atau kegagalan koneksi jaringan):
 - Blok `try...except` di FastAPI memicu *compensating action*:
   - `INCRBY tier:{id}:stock {quantity}`
-  - Menghapus kunci reservasi dan antrean user.
+  - Menghapus kunci reservasi `reservation:{token}` dan kunci antrean user `user:{user_id}:tier:{tier_id}`.
 - Menjamin stok di memori Redis tidak bocor (*zero stock leak*).
 
+---
+
+## 5. Pertahanan Bot & Sliding-Window IP Rate Limiting
+
+Untuk mencegah scraper atau bot membanjiri jalur reservasi:
+- `app/security.py` menerapkan *Sliding Window Rate Limiter* via Redis Sorted Set.
+- Kunci `ratelimit:ip:{ip}` menyimpan timestamp milidetik setiap request.
+- Permintaan lama di luar window 10 detik dibersihkan dengan `ZREMRANGEBYSCORE`.
+- Jika jumlah elemen (`ZCARD`) melebihi 150 request dalam 10 detik, request dipotong dengan `HTTP 429 Too Many Requests`.
+
+---
+
+## 6. Live Inventory Replenishment & Stock Integrity Invariant
+
+Sistem menjamin keabsahan invarian stok global:
+$$\text{sold\_stock}_{\text{db}} + \text{active\_reservations}_{\text{redis}} + \text{available\_stock}_{\text{redis}} = \text{total\_stock}_{\text{db}}$$
+
+Setiap penambahan kuota melalui endpoint admin (`POST /api/v1/admin/tiers/{id}/adjust-stock`) memperbarui `total_stock` di PostgreSQL dan `tier:{id}:stock` di Redis secara sinkron sehingga katalog selalu konsisten di semua instans.
