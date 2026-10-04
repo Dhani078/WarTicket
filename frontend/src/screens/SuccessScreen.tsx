@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { CheckCircle, Copy, Check } from 'lucide-react';
+import { CheckCircle, Copy, Check, Printer } from 'lucide-react';
+import PrintTicketModal from '../components/PrintTicketModal';
 
 interface SuccessScreenProps {
   orderId: string;
@@ -19,6 +20,7 @@ export default function SuccessScreen({
   onReset
 }: SuccessScreenProps) {
   const [copied, setCopied] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(orderId);
@@ -68,12 +70,30 @@ export default function SuccessScreen({
         </div>
       </div>
 
-      <button
-        onClick={onReset}
-        className="mt-8 w-full py-3.5 bg-[#6366F1] hover:bg-[#4F46E5] active:bg-[#4338CA] rounded-xl text-white font-bold transition-all shadow-[0_0_20px_rgba(99,102,241,0.4)] cursor-pointer"
-      >
-        Kembali ke Beranda Katalog
-      </button>
+      <div className="mt-8 flex flex-col sm:flex-row gap-3">
+        <button
+          onClick={() => setShowPrintModal(true)}
+          className="flex-1 py-3.5 bg-[#10B981] hover:bg-[#059669] active:bg-[#047857] rounded-xl text-white font-bold transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <Printer className="w-4 h-4" /> Cetak / Unduh E-Tiket
+        </button>
+        <button
+          onClick={onReset}
+          className="flex-1 py-3.5 bg-[#6366F1] hover:bg-[#4F46E5] active:bg-[#4338CA] rounded-xl text-white font-bold transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)] cursor-pointer"
+        >
+          Kembali ke Beranda
+        </button>
+      </div>
+
+      <PrintTicketModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        orderId={orderId}
+        reservationToken={reservationToken}
+        tierName={tierName}
+        quantity={quantity}
+        grandTotal={grandTotal}
+      />
     </div>
   );
 }

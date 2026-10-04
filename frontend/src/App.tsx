@@ -8,6 +8,7 @@ import CatalogScreen from './screens/CatalogScreen';
 import QueueModal from './screens/QueueModal';
 import CheckoutScreen from './screens/CheckoutScreen';
 import SuccessScreen from './screens/SuccessScreen';
+import TelemetryModal from './components/TelemetryModal';
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
 
@@ -27,6 +28,8 @@ export default function App() {
   const [queueSpot, setQueueSpot] = useState<number>(342);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('qris');
   const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isTelemetryOpen, setIsTelemetryOpen] = useState<boolean>(false);
   const [buyerName, setBuyerName] = useState<string>('Raka Pratama');
   const [buyerNik, setBuyerNik] = useState<string>('3174091288000021');
   const [buyerEmail, setBuyerEmail] = useState<string>('raka@studio.id');
@@ -36,6 +39,7 @@ export default function App() {
   ]);
 
   const loadEvent = () => {
+    setIsRefreshing(true);
     setErrorMessage('');
     fetch(`${API_BASE}/api/v1/events/active`)
       .then((res) => {
@@ -51,6 +55,9 @@ export default function App() {
       })
       .catch(() => {
         setErrorMessage('Gagal memuat katalog event. Pastikan backend aktif di http://localhost:8000.');
+      })
+      .finally(() => {
+        setIsRefreshing(false);
       });
   };
 
@@ -187,7 +194,15 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col justify-between selection:bg-[#6366F1] selection:text-white">
-      <Header onRefresh={loadEvent} />
+      <Header
+        onRefresh={loadEvent}
+        isRefreshing={isRefreshing}
+        onOpenTelemetry={() => setIsTelemetryOpen(true)}
+        onGoHome={() => {
+          setStep('tiers');
+          loadEvent();
+        }}
+      />
 
       {step === 'checkout' && <HoldingBanner timeLeft={timeLeft} />}
 
@@ -253,6 +268,11 @@ export default function App() {
           />
         )}
       </main>
+
+      <TelemetryModal
+        isOpen={isTelemetryOpen}
+        onClose={() => setIsTelemetryOpen(false)}
+      />
 
       <Footer />
     </div>

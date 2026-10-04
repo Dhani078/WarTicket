@@ -87,15 +87,17 @@ WarTicket/
 │   │   ├── index.css
 │   │   ├── types.ts            # Type definitions (Tier, EventData, Attendee, Step)
 │   │   ├── App.tsx             # Main orchestrator (<260 lines)
-│   │   ├── components/         # Modular UI components (<70 lines each)
+│   │   ├── components/         # Modular UI components (<130 lines each)
 │   │   │   ├── Header.tsx
 │   │   │   ├── HoldingBanner.tsx
 │   │   │   ├── ErrorBanner.tsx
 │   │   │   ├── QrisCard.tsx
 │   │   │   ├── VirtualAccountCard.tsx
 │   │   │   ├── CreditCardCard.tsx
+│   │   │   ├── TelemetryModal.tsx
+│   │   │   ├── PrintTicketModal.tsx
 │   │   │   └── Footer.tsx
-│   │   └── screens/            # Screen views (<285 lines each)
+│   │   └── screens/            # Screen views (<298 lines each)
 │   │       ├── CatalogScreen.tsx
 │   │       ├── QueueModal.tsx
 │   │       ├── CheckoutScreen.tsx
