@@ -29,29 +29,34 @@ async def start_reconciliation():
                 user_id = res_data.get("user_id") if res_data else None
 
                 async with pool.acquire() as conn:
-                    # Fallback to DB if Redis evicted the hash key early
-                    if not tier_id or qty == 0:
-                        order = await conn.fetchrow(
-                            "SELECT tier_id, quantity, user_id FROM orders WHERE reservation_token = $1 AND status = 'PENDING'",
-                            token
-                        )
-                        if order:
-                            tier_id = str(order["tier_id"])
-                            qty = order["quantity"]
-                            user_id = str(order["user_id"])
-
-                    if tier_id and qty > 0:
-                        await r.incrby(f"tier:{tier_id}:stock", qty)
-                    if user_id and tier_id:
-                        await r.delete(f"user:{user_id}:tier:{tier_id}")
-                    await r.delete(res_key)
-                    await r.zrem("reservations:expiry_zset", token)
-
-                    await conn.execute(
+                    # Atomic state transition in PostgreSQL FIRST
+                    update_res = await conn.execute(
                         "UPDATE orders SET status = 'EXPIRED', updated_at = NOW() WHERE reservation_token = $1 AND status = 'PENDING'",
                         token
                     )
-                print(f"[Reconciler] Auto-refunded expired reservation: {token}")
+
+                    # Only restore Redis stock if order was genuinely PENDING
+                    if "UPDATE 1" in update_res:
+                        if not tier_id or qty == 0:
+                            order = await conn.fetchrow(
+                                "SELECT tier_id, quantity, user_id FROM orders WHERE reservation_token = $1",
+                                token
+                            )
+                            if order:
+                                tier_id = str(order["tier_id"])
+                                qty = order["quantity"]
+                                user_id = str(order["user_id"])
+
+                        if tier_id and qty > 0:
+                            await r.incrby(f"tier:{tier_id}:stock", qty)
+                        if user_id and tier_id:
+                            await r.delete(f"user:{user_id}:tier:{tier_id}")
+                        print(f"[Reconciler] Auto-refunded expired reservation: {token} (+{qty} stock)")
+                    else:
+                        print(f"[Reconciler] Order {token} was not PENDING (already PAID or CANCELLED). Skipping stock return.")
+
+                    await r.delete(res_key)
+                    await r.zrem("reservations:expiry_zset", token)
 
         except Exception as e:
             print(f"[Reconciler Error] {e}")

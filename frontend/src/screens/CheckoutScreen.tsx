@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShieldCheck, QrCode, Building2, CreditCard } from 'lucide-react';
 import { Tier, PaymentMethod, Attendee } from '../types';
 import QrisCard from '../components/QrisCard';
 import VirtualAccountCard from '../components/VirtualAccountCard';
 import CreditCardCard from '../components/CreditCardCard';
+import VoucherInput from '../components/VoucherInput';
 
 interface CheckoutScreenProps {
   activeTier: Tier;
@@ -44,9 +45,12 @@ export default function CheckoutScreen({
   onPay,
   onCancel
 }: CheckoutScreenProps) {
+  const [discount, setDiscount] = useState<number>(0);
+  const [promoCode, setPromoCode] = useState<string>('');
+
   const platformFee = 5000;
   const subtotal = activeTier.price * quantity;
-  const grandTotal = subtotal + platformFee;
+  const grandTotal = Math.max(0, subtotal + platformFee - discount);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -149,53 +153,32 @@ export default function CheckoutScreen({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('qris')}
-                className={`p-4 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                  paymentMethod === 'qris'
-                    ? 'border-[#10B981] bg-[#064E3B]/20 ring-1 ring-[#10B981]'
-                    : 'border-[#1E293B] bg-[#0B0F19] hover:border-slate-600'
-                }`}
-              >
-                <QrCode className="w-6 h-6 text-[#10B981] mb-2" />
-                <div>
-                  <div className="font-bold text-sm text-white">QRIS Instant</div>
-                  <div className="text-[11px] text-slate-400">GoPay, OVO, BCA, Dana</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('va')}
-                className={`p-4 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                  paymentMethod === 'va'
-                    ? 'border-[#6366F1] bg-[#6366F1]/10 ring-1 ring-[#6366F1]'
-                    : 'border-[#1E293B] bg-[#0B0F19] hover:border-slate-600'
-                }`}
-              >
-                <Building2 className="w-6 h-6 text-[#6366F1] mb-2" />
-                <div>
-                  <div className="font-bold text-sm text-white">Virtual Account</div>
-                  <div className="text-[11px] text-slate-400">BCA, Mandiri, BNI, BRI</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('cc')}
-                className={`p-4 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                  paymentMethod === 'cc'
-                    ? 'border-[#6366F1] bg-[#6366F1]/10 ring-1 ring-[#6366F1]'
-                    : 'border-[#1E293B] bg-[#0B0F19] hover:border-slate-600'
-                }`}
-              >
-                <CreditCard className="w-6 h-6 text-[#6366F1] mb-2" />
-                <div>
-                  <div className="font-bold text-sm text-white">Credit Card</div>
-                  <div className="text-[11px] text-slate-400">Visa, Mastercard, JCB</div>
-                </div>
-              </button>
+              {[
+                { id: 'qris', name: 'QRIS Instant', desc: 'GoPay, OVO, BCA, Dana', icon: QrCode },
+                { id: 'va', name: 'Virtual Account', desc: 'BCA, Mandiri, BNI, BRI', icon: Building2 },
+                { id: 'cc', name: 'Credit Card', desc: 'Visa, Mastercard, JCB', icon: CreditCard },
+              ].map((m) => {
+                const Icon = m.icon;
+                const isSel = paymentMethod === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setPaymentMethod(m.id as any)}
+                    className={`p-4 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                      isSel
+                        ? 'border-[#10B981] bg-[#064E3B]/20 ring-1 ring-[#10B981]'
+                        : 'border-[#1E293B] bg-[#0B0F19] hover:border-slate-600'
+                    }`}
+                  >
+                    <Icon className={`w-6 h-6 mb-2 ${isSel ? 'text-[#10B981]' : 'text-[#6366F1]'}`} />
+                    <div>
+                      <div className="font-bold text-sm text-white">{m.name}</div>
+                      <div className="text-[11px] text-slate-400">{m.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
             {paymentMethod === 'qris' && <QrisCard grandTotal={grandTotal} />}
@@ -222,6 +205,12 @@ export default function CheckoutScreen({
                 <span className="text-slate-400">Biaya Platform Concurrency</span>
                 <span className="font-mono text-white">Rp {platformFee.toLocaleString('id-ID')}</span>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-emerald-400 font-medium">
+                  <span>Diskon Promo ({promoCode})</span>
+                  <span className="font-mono">-Rp {discount.toLocaleString('id-ID')}</span>
+                </div>
+              )}
 
               <div className="pt-3 border-t border-[#1E293B] flex justify-between text-sm font-bold">
                 <span className="text-white">Total Tagihan</span>
@@ -230,6 +219,15 @@ export default function CheckoutScreen({
                 </span>
               </div>
             </div>
+
+            <VoucherInput
+              subtotal={subtotal}
+              appliedCode={promoCode}
+              onApplyPromo={(disc, c) => {
+                setDiscount(disc);
+                setPromoCode(c);
+              }}
+            />
 
             <div className="mt-6 pt-4 border-t border-[#1E293B] space-y-2">
               <div className="text-[11px] text-slate-400 font-mono">

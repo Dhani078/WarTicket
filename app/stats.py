@@ -1,8 +1,13 @@
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+import uuid
 import asyncpg
 import redis.asyncio as aioredis
 
 stats_router = APIRouter(prefix="/api/v1/admin", tags=["Admin & Telemetry"])
+
+class AdjustStockRequest(BaseModel):
+    additional_stock: int = Field(..., ge=1, le=10000)
 
 @stats_router.get("/stats")
 async def get_system_stats():
@@ -41,3 +46,33 @@ async def get_system_stats():
             "active_redis_reservations": active_reservations,
             "zero_oversell_guarantee": "ENFORCED"
         }
+
+@stats_router.post("/tiers/{tier_id}/adjust-stock")
+async def adjust_tier_stock(tier_id: str, payload: AdjustStockRequest):
+    from app.main import db_pool, redis_client
+
+    try:
+        tier_uuid = uuid.UUID(tier_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Format tier_id tidak valid.")
+
+    async with db_pool.acquire() as conn:
+        tier = await conn.fetchrow(
+            "UPDATE ticket_tiers SET total_stock = total_stock + $1 WHERE id = $2 RETURNING id, name, total_stock, sold_stock",
+            payload.additional_stock, tier_uuid
+        )
+        if not tier:
+            raise HTTPException(status_code=404, detail="Tier tidak ditemukan.")
+
+    stock_key = f"tier:{tier_id}:stock"
+    new_redis_stock = await redis_client.incrby(stock_key, payload.additional_stock)
+
+    return {
+        "status": "success",
+        "tier_id": tier_id,
+        "name": tier["name"],
+        "added_stock": payload.additional_stock,
+        "new_total_stock_db": tier["total_stock"],
+        "new_available_stock_redis": new_redis_stock
+    }
+

@@ -1,9 +1,12 @@
-import { Ticket, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { Ticket, RefreshCw, History, Volume2, VolumeX } from 'lucide-react';
+import { sound } from '../utils/sound';
 
 interface HeaderProps {
   onRefresh: () => void;
   isRefreshing?: boolean;
   onOpenTelemetry?: () => void;
+  onOpenHistory?: () => void;
   onGoHome?: () => void;
 }
 
@@ -11,8 +14,17 @@ export default function Header({
   onRefresh,
   isRefreshing = false,
   onOpenTelemetry,
+  onOpenHistory,
   onGoHome,
 }: HeaderProps) {
+  const [isMuted, setIsMuted] = useState(!sound.enabled);
+
+  const toggleSound = () => {
+    sound.enabled = !sound.enabled;
+    setIsMuted(!sound.enabled);
+    if (sound.enabled) sound.playChime();
+  };
+
   return (
     <header className="h-16 border-b border-[#1E293B] px-4 md:px-8 lg:px-16 flex items-center justify-between bg-[#131B2E]/70 backdrop-blur-md sticky top-0 z-40">
       <div
@@ -33,7 +45,7 @@ export default function Header({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         <button
           type="button"
           onClick={onOpenTelemetry}
@@ -44,6 +56,25 @@ export default function Header({
           <span className="hidden sm:inline">Direct Edge: 12ms | Zero Oversell Engine</span>
           <span className="sm:hidden">12ms • Live</span>
         </button>
+
+        <button
+          type="button"
+          onClick={onOpenHistory}
+          title="Lihat Riwayat Tiket Saya"
+          className="p-1.5 rounded-lg border border-[#1E293B] bg-[#0E1424] hover:bg-[#1E293B] text-slate-400 hover:text-white transition-colors cursor-pointer"
+        >
+          <History className="w-4 h-4" />
+        </button>
+
+        <button
+          type="button"
+          onClick={toggleSound}
+          title={isMuted ? 'Nyalakan Efek Suara' : 'Bisukan Suara'}
+          className="p-1.5 rounded-lg border border-[#1E293B] bg-[#0E1424] hover:bg-[#1E293B] text-slate-400 hover:text-white transition-colors cursor-pointer"
+        >
+          {isMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-[#10B981]" />}
+        </button>
+
         <button
           type="button"
           onClick={onRefresh}

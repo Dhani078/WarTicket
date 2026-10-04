@@ -9,6 +9,8 @@ import QueueModal from './screens/QueueModal';
 import CheckoutScreen from './screens/CheckoutScreen';
 import SuccessScreen from './screens/SuccessScreen';
 import TelemetryModal from './components/TelemetryModal';
+import OrderHistoryModal from './components/OrderHistoryModal';
+import { sound } from './utils/sound';
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
 
@@ -30,6 +32,7 @@ export default function App() {
   const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isTelemetryOpen, setIsTelemetryOpen] = useState<boolean>(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [buyerName, setBuyerName] = useState<string>('Raka Pratama');
   const [buyerNik, setBuyerNik] = useState<string>('3174091288000021');
   const [buyerEmail, setBuyerEmail] = useState<string>('raka@studio.id');
@@ -130,6 +133,7 @@ export default function App() {
 
       const data = await res.json();
       if (res.ok) {
+        sound.playChime();
         setReservationToken(data.data.reservation_token);
         setOrderId(data.data.order_id);
         setTimeLeft(data.data.holding_time_seconds || 600);
@@ -160,6 +164,10 @@ export default function App() {
       });
       const data = await res.json();
       if (res.ok && (data.status === 'processed' || data.status === 'ignored')) {
+        sound.playSuccess();
+        const newOrd = { orderId, reservationToken, tierName: activeTierObj?.name, quantity, grandTotal, timestamp: Date.now() };
+        const saved = JSON.parse(localStorage.getItem('wartiket_orders') || '[]');
+        localStorage.setItem('wartiket_orders', JSON.stringify([newOrd, ...saved.slice(0, 19)]));
         setStep('success');
       } else {
         setErrorMessage(data.detail || 'Gagal memproses pembayaran pesanan.');
@@ -173,15 +181,11 @@ export default function App() {
 
   const handleCancelReserve = async () => {
     if (reservationToken && orderId) {
-      try {
-        await fetch(`${API_BASE}/api/v1/tickets/cancel`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reservation_token: reservationToken, order_id: orderId })
-        });
-      } catch {
-        // Fallback silently; background worker reconciles if network drops
-      }
+      fetch(`${API_BASE}/api/v1/tickets/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reservation_token: reservationToken, order_id: orderId })
+      }).catch(() => {});
     }
     setStep('tiers');
     loadEvent();
@@ -198,6 +202,7 @@ export default function App() {
         onRefresh={loadEvent}
         isRefreshing={isRefreshing}
         onOpenTelemetry={() => setIsTelemetryOpen(true)}
+        onOpenHistory={() => setIsHistoryOpen(true)}
         onGoHome={() => {
           setStep('tiers');
           loadEvent();
@@ -272,6 +277,16 @@ export default function App() {
       <TelemetryModal
         isOpen={isTelemetryOpen}
         onClose={() => setIsTelemetryOpen(false)}
+      />
+
+      <OrderHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onSelectOrder={(ord) => {
+          setOrderId(ord.orderId);
+          setReservationToken(ord.reservationToken);
+          setStep('success');
+        }}
       />
 
       <Footer />

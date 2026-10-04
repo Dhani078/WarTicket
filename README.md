@@ -76,8 +76,9 @@ WarTicket/
 ├── app/
 │   ├── __init__.py
 │   ├── main.py                 # REST API Engine (<300 lines)
-│   ├── stats.py                # Admin observability & telemetry router (<50 lines)
-│   └── worker.py               # Reconciler 5s + DB fallback (<70 lines)
+│   ├── promos.py               # Promo & voucher validation router (<40 lines)
+│   ├── stats.py                # Admin observability & live inventory replenisher (<80 lines)
+│   └── worker.py               # Reconciler 2-phase DB transition + Redis (<70 lines)
 ├── frontend/
 │   ├── package.json
 │   ├── vite.config.ts
@@ -86,14 +87,18 @@ WarTicket/
 │   │   ├── main.tsx
 │   │   ├── index.css
 │   │   ├── types.ts            # Type definitions (Tier, EventData, Attendee, Step)
-│   │   ├── App.tsx             # Main orchestrator (<260 lines)
+│   │   ├── App.tsx             # Main orchestrator (<298 lines)
+│   │   ├── utils/
+│   │   │   └── sound.ts        # Zero-dep Web Audio synthesizer (<60 lines)
 │   │   ├── components/         # Modular UI components (<130 lines each)
-│   │   │   ├── Header.tsx
+│   │   │   ├── Header.tsx      # Header with sound toggle & order history
 │   │   │   ├── HoldingBanner.tsx
 │   │   │   ├── ErrorBanner.tsx
 │   │   │   ├── QrisCard.tsx
 │   │   │   ├── VirtualAccountCard.tsx
 │   │   │   ├── CreditCardCard.tsx
+│   │   │   ├── VoucherInput.tsx
+│   │   │   ├── OrderHistoryModal.tsx
 │   │   │   ├── TelemetryModal.tsx
 │   │   │   ├── PrintTicketModal.tsx
 │   │   │   └── Footer.tsx
