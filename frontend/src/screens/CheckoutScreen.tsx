@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldCheck, QrCode, Building2, CreditCard } from 'lucide-react';
 import { Tier, PaymentMethod, Attendee } from '../types';
+import QrisCard from '../components/QrisCard';
 
 interface CheckoutScreenProps {
   activeTier: Tier;
@@ -194,6 +195,8 @@ export default function CheckoutScreen({
                 </div>
               </button>
             </div>
+
+            {paymentMethod === 'qris' && <QrisCard grandTotal={grandTotal} />}
           </div>
         </div>
 

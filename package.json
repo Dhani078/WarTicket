@@ -8,6 +8,8 @@
     "build:frontend": "cd frontend && npm run build",
     "start:backend": "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
     "start:worker": "python app/worker.py",
+    "test:logic": "python tests/test_logic.py",
+    "test": "npm run test:logic",
     "test:k6": "k6 run tests/load_test_k6.js"
   },
   "keywords": [

@@ -1,3 +1,4 @@
+import json
 import os
 import time
 import uuid
@@ -110,11 +111,27 @@ async def get_active_events():
 
 @app.post("/api/v1/tickets/reserve", status_code=status.HTTP_201_CREATED)
 async def reserve_ticket(payload: ReserveRequest):
+    try:
+        tier_uuid = uuid.UUID(payload.tier_id)
+        user_uuid = uuid.UUID(payload.user_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Format tier_id atau user_id tidak valid (harus UUID).")
+
+    stock_key = f"tier:{payload.tier_id}:stock"
+    if not await redis_client.exists(stock_key):
+        async with db_pool.acquire() as conn:
+            stock_row = await conn.fetchrow(
+                "SELECT (total_stock - reserved_stock - sold_stock) as available FROM ticket_tiers WHERE id = $1",
+                tier_uuid
+            )
+            if stock_row:
+                await redis_client.set(stock_key, max(0, stock_row["available"]))
+
     token = f"res_{uuid.uuid4().hex[:16]}"
     now_epoch = int(time.time())
     
     keys = [
-        f"tier:{payload.tier_id}:stock",
+        stock_key,
         f"user:{payload.user_id}:tier:{payload.tier_id}",
         f"reservation:{token}",
         "reservations:expiry_zset"
@@ -137,7 +154,7 @@ async def reserve_ticket(payload: ReserveRequest):
     
     try:
         async with db_pool.acquire() as conn:
-            tier_info = await conn.fetchrow("SELECT price FROM ticket_tiers WHERE id = $1", uuid.UUID(payload.tier_id))
+            tier_info = await conn.fetchrow("SELECT price FROM ticket_tiers WHERE id = $1", tier_uuid)
             if not tier_info:
                 raise HTTPException(status_code=404, detail="Tier tidak ditemukan.")
                 
@@ -151,8 +168,8 @@ async def reserve_ticket(payload: ReserveRequest):
                 VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7)
                 """,
                 order_id,
-                uuid.UUID(payload.user_id),
-                uuid.UUID(payload.tier_id),
+                user_uuid,
+                tier_uuid,
                 payload.quantity,
                 total_amount,
                 token,
@@ -160,7 +177,7 @@ async def reserve_ticket(payload: ReserveRequest):
             )
     except Exception as e:
         # Compensating rollback in Redis if PostgreSQL fails
-        await redis_client.incrby(f"tier:{payload.tier_id}:stock", payload.quantity)
+        await redis_client.incrby(stock_key, payload.quantity)
         await redis_client.delete(f"user:{payload.user_id}:tier:{payload.tier_id}")
         await redis_client.delete(f"reservation:{token}")
         await redis_client.zrem("reservations:expiry_zset", token)
@@ -205,10 +222,16 @@ async def payment_webhook(payload: WebhookPaymentRequest):
                 await redis_client.zrem("reservations:expiry_zset", order["reservation_token"])
                 await redis_client.delete(f"reservation:{order['reservation_token']}")
                 await redis_client.delete(f"user:{order['user_id']}:tier:{order['tier_id']}")
+            elif payload.status in ("FAILED", "CANCELLED", "EXPIRED"):
+                await conn.execute("UPDATE orders SET status = 'CANCELLED', updated_at = NOW() WHERE id = $1", order["id"])
+                await redis_client.incrby(f"tier:{order['tier_id']}:stock", order["quantity"])
+                await redis_client.zrem("reservations:expiry_zset", order["reservation_token"])
+                await redis_client.delete(f"reservation:{order['reservation_token']}")
+                await redis_client.delete(f"user:{order['user_id']}:tier:{order['tier_id']}")
 
             await conn.execute(
                 "INSERT INTO payment_idempotency (idempotency_key, order_id, payload) VALUES ($1, $2, $3)",
-                payload.idempotency_key, order["id"], '{"status": "' + payload.status + '"}'
+                payload.idempotency_key, order["id"], json.dumps({"status": payload.status})
             )
 
     return {"status": "processed", "order_id": payload.order_id}

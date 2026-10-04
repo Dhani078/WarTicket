@@ -29,7 +29,8 @@ export default function () {
   const res = http.post(url, payload, params);
 
   check(res, {
-    'Status code is either 201 (Created) or 409 (Sold Out)': (r) => r.status === 201 || r.status === 409,
+    'Status code is valid flash-sale response (201 Created, 409 Sold Out, 429 Rate Limit)': (r) =>
+      r.status === 201 || r.status === 409 || r.status === 429,
     'Zero Server Fault (Not 500)': (r) => r.status !== 500,
   });
 

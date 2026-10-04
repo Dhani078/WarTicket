@@ -1,4 +1,5 @@
-import { CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+import { CheckCircle, Copy, Check } from 'lucide-react';
 
 interface SuccessScreenProps {
   orderId: string;
@@ -17,6 +18,14 @@ export default function SuccessScreen({
   grandTotal,
   onReset
 }: SuccessScreenProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard?.writeText(orderId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="max-w-md mx-auto text-center py-12">
       <div className="w-20 h-20 bg-[#064E3B] border border-[#10B981] rounded-3xl flex items-center justify-center mx-auto mb-6 text-[#10B981] shadow-[0_0_40px_rgba(16,185,129,0.3)]">
@@ -28,9 +37,18 @@ export default function SuccessScreen({
       </p>
 
       <div className="mt-8 p-6 bg-[#131B2E] border border-[#1E293B] rounded-2xl font-mono text-xs text-left space-y-3 shadow-xl">
-        <div className="flex justify-between border-b border-[#1E293B] pb-2">
+        <div className="flex justify-between items-center border-b border-[#1E293B] pb-2">
           <span className="text-slate-500">Order ID</span>
-          <span className="text-white select-all">{orderId}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-white select-all">{orderId.slice(0, 14)}...</span>
+            <button
+              onClick={handleCopy}
+              className="p-1 hover:bg-[#1E293B] rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
+              title="Salin Order ID"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-[#10B981]" /> : <Copy className="w-3.5 h-3.5" />}
+            </button>
+          </div>
         </div>
         <div className="flex justify-between border-b border-[#1E293B] pb-2">
           <span className="text-slate-500">Reservation Token</span>

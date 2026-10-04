@@ -86,10 +86,11 @@ WarTicket/
 │   │   ├── index.css
 │   │   ├── types.ts            # Type definitions (Tier, EventData, Attendee, Step)
 │   │   ├── App.tsx             # Main orchestrator (<250 lines)
-│   │   ├── components/         # Modular UI components (<50 lines each)
+│   │   ├── components/         # Modular UI components (<65 lines each)
 │   │   │   ├── Header.tsx
 │   │   │   ├── HoldingBanner.tsx
 │   │   │   ├── ErrorBanner.tsx
+│   │   │   ├── QrisCard.tsx
 │   │   │   └── Footer.tsx
 │   │   └── screens/            # Screen views (<280 lines each)
 │   │       ├── CatalogScreen.tsx
@@ -99,6 +100,7 @@ WarTicket/
 │   └── dist/
 └── tests/
     ├── test_logic.py
+    ├── test_e2e_real.py
     └── load_test_k6.js
 ```
 
