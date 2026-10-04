@@ -112,7 +112,9 @@ WarTicket/
 │   │       ├── CheckoutScreen.tsx
 │   │       └── SuccessScreen.tsx
 │   └── dist/
-└── tests/
+├── references/
+│   └── Leaked-System-Prompt-AI/ # Prompt architecture reference library (Anthropic, Cursor, Devin, etc.)
+├── tests/
     ├── test_logic.py           # Unit tests logic
     ├── test_e2e_real.py        # 7-suite live E2E integration tests
     ├── load_test_smoke.js      # k6 smoke benchmark (50 VUs)
