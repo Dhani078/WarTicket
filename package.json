@@ -12,6 +12,7 @@
     "test:e2e": "venv\\Scripts\\python tests/test_e2e_real.py",
     "test:k6": "k6 run tests/load_test_k6.js",
     "test:smoke": "k6 run tests/load_test_smoke.js",
+    "test:simulate": "venv\\Scripts\\python tests/simulate_real_user.py",
     "audit:viewport": "venv\\Scripts\\python tests/audit_viewports.py",
     "test": "npm run test:logic && npm run test:e2e"
   },
